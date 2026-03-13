@@ -29,13 +29,18 @@ async def register_user(
     session: AsyncSession = Depends(get_session),
 ):
     email = payload.email.strip().lower()
+    name = payload.name.strip()
     existing = await user_service.get_user_by_email(session, email)
     if existing:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
 
+    existing_name = await user_service.get_user_by_name(session, name)
+    if existing_name:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Name already registered")
+
     user = await user_service.create_user(
         session=session,
-        name=payload.name.strip(),
+        name=name,
         email=email,
         password=payload.password,
     )
