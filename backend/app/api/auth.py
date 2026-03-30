@@ -4,15 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.engine.database import get_session
-from app.schemas.user import (
-    UserLoginRequest,
-    UserLogoutRequest,
-    UserLogoutResponse,
-    UserRegisterRequest,
-    UserRegisterResponse,
-)
+from app.schemas.user import UserLoginRequest, UserRegisterRequest, UserRegisterResponse
 from app.services.user_service import UserService
-from app.services.session_service import create_session, revoke_session
+from app.services.session_service import create_session
 
 router = APIRouter()
 user_service = UserService()
@@ -62,17 +56,19 @@ async def login_user(
     payload: UserLoginRequest,
     session: AsyncSession = Depends(get_session),
 ):
-    identifier = _clean_str(payload.identifier)
-    if not identifier:
+    email = _clean_str(payload.email)
+    name = _clean_str(payload.name)
+
+    if not email and not name:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Identifier is required",
+            detail="Email or name is required",
         )
 
-    if "@" in identifier:
-        user = await user_service.get_user_by_email(session, identifier.lower())
+    if email:
+        user = await user_service.get_user_by_email(session, email.lower())
     else:
-        user = await user_service.get_user_by_name(session, identifier)
+        user = await user_service.get_user_by_name(session, name)
 
     if not user or not user_service.verify_password(payload.password, user.password_hash):
         raise HTTPException(
@@ -87,9 +83,3 @@ async def login_user(
         email=user.email,
         token=token,
     )
-
-
-@router.post("/logout", response_model=UserLogoutResponse)
-async def logout_user(payload: UserLogoutRequest):
-    await revoke_session(payload.token)
-    return UserLogoutResponse(success=True)

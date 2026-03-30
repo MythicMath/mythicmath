@@ -17,13 +17,17 @@ class UserRegisterResponse(BaseModel):
 
 
 class UserLoginRequest(BaseModel):
-    identifier: str
+    email: Optional[str] = None
+    name: Optional[str] = None
     password: str
 
 
-class UserLogoutRequest(BaseModel):
-    token: str
-
-
-class UserLogoutResponse(BaseModel):
-    success: bool
+class UserProfileResponse(BaseModel):
+    userId: int
+    name: str
+    image: Optional[str] = None
+    day_learning_streak: int
+    ranked_victories: int
+    xpCurrent: int
+    xpToNextLevel: int
+    level: int
