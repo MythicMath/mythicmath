@@ -17,8 +17,7 @@ class UserRegisterResponse(BaseModel):
 
 
 class UserLoginRequest(BaseModel):
-    email: Optional[str] = None
-    name: Optional[str] = None
+    identifier: str
     password: str
 
 

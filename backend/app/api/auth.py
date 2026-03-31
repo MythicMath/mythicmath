@@ -56,19 +56,17 @@ async def login_user(
     payload: UserLoginRequest,
     session: AsyncSession = Depends(get_session),
 ):
-    email = _clean_str(payload.email)
-    name = _clean_str(payload.name)
-
-    if not email and not name:
+    identifier = _clean_str(payload.identifier)
+    if not identifier:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Email or name is required",
+            detail="Identifier is required",
         )
 
-    if email:
-        user = await user_service.get_user_by_email(session, email.lower())
+    if "@" in identifier:
+        user = await user_service.get_user_by_email(session, identifier.lower())
     else:
-        user = await user_service.get_user_by_name(session, name)
+        user = await user_service.get_user_by_name(session, identifier)
 
     if not user or not user_service.verify_password(payload.password, user.password_hash):
         raise HTTPException(
