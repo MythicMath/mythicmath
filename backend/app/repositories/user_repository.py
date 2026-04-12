@@ -39,3 +39,19 @@ class UserRepository:
         await session.commit()
         await session.refresh(user)
         return user
+
+    async def update(
+        self,
+        session: AsyncSession,
+        user: User,
+        email: Optional[str] = None,
+        password_hash: Optional[str] = None,
+    ) -> User:
+        if email is not None:
+            user.email = email
+        if password_hash is not None:
+            user.password_hash = password_hash
+        session.add(user)
+        await session.commit()
+        await session.refresh(user)
+        return user

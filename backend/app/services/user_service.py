@@ -36,5 +36,22 @@ class UserService:
             photo_url=photo_url,
         )
 
+    async def update_user(
+        self,
+        session: AsyncSession,
+        user,
+        email: Optional[str] = None,
+        password: Optional[str] = None,
+    ):
+        password_hash = None
+        if password is not None:
+            password_hash = hash_password(password)
+        return await self.repository.update(
+            session,
+            user=user,
+            email=email,
+            password_hash=password_hash,
+        )
+
     def verify_password(self, password: str, password_hash: str) -> bool:
         return verify_password(password, password_hash)

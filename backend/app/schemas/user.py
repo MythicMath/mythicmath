@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel
@@ -43,3 +44,19 @@ class UserLogoutRequest(BaseModel):
 
 class UserLogoutResponse(BaseModel):
     success: bool
+
+
+class UserUpdateRequest(BaseModel):
+    email: Optional[str] = None
+    senha: Optional[str] = None
+
+
+class UserUpdateResponse(BaseModel):
+    id: int
+    name: str
+    email: str
+    xp: int
+    level: int
+    total_score: int
+    ranked_wins: int
+    created_at: Optional[datetime] = None
