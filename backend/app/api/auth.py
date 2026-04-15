@@ -12,6 +12,7 @@ from app.schemas.user import (
     UserRegisterResponse,
 )
 from app.services.user_service import UserService
+from app.services.validation import is_valid_email
 from app.services.session_service import create_session, revoke_session
 
 router = APIRouter()
@@ -30,7 +31,20 @@ async def register_user(
     payload: UserRegisterRequest,
     session: AsyncSession = Depends(get_session),
 ):
-    email = payload.email.strip().lower()
+    email = _clean_str(payload.email)
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Email is required",
+        )
+
+    if not is_valid_email(email):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Invalid email format",
+        )
+
+    email = email.lower()
     name = payload.name.strip()
     existing = await user_service.get_user_by_email(session, email)
     if existing:

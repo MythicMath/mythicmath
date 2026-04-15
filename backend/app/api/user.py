@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.engine.database import get_session as get_db_session
 from app.schemas.user import UserUpdateRequest, UserUpdateResponse
 from app.services.user_service import UserService
+from app.services.validation import is_valid_email
 
 router = APIRouter()
 user_service = UserService()
@@ -46,6 +47,12 @@ async def update_user(
         )
 
     if email is not None:
+        if not is_valid_email(email):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Invalid email format",
+            )
+
         email = email.lower()
         existing = await user_service.get_user_by_email(session, email)
         if existing and existing.id != id:
