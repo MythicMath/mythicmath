@@ -25,6 +25,7 @@ class UserLoginRequest(BaseModel):
 class UserProfileResponse(BaseModel):
     userId: int
     username: str
+    email: str
     image: Optional[str] = None
     day_learning_streak: int
     ranked_victories: int

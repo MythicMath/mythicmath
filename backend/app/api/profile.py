@@ -27,6 +27,7 @@ async def get_profile(current_user=Depends(get_current_user)):
     return UserProfileResponse(
         userId=current_user.id,
         username=current_user.username,
+        email=current_user.email,
         image=current_user.photo_url,
         day_learning_streak=0,
         ranked_victories=current_user.ranked_wins,
