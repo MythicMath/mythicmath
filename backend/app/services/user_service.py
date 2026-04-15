@@ -16,13 +16,13 @@ class UserService:
     async def get_user_by_email(self, session: AsyncSession, email: str):
         return await self.repository.get_by_email(session, email)
 
-    async def get_user_by_name(self, session: AsyncSession, name: str):
-        return await self.repository.get_by_name(session, name)
+    async def get_user_by_username(self, session: AsyncSession, username: str):
+        return await self.repository.get_by_username(session, username)
 
     async def create_user(
         self,
         session: AsyncSession,
-        name: str,
+        username: str,
         email: str,
         password: str,
         photo_url: Optional[str] = None,
@@ -30,7 +30,7 @@ class UserService:
         password_hash = hash_password(password)
         return await self.repository.create(
             session,
-            name=name,
+            username=username,
             email=email,
             password_hash=password_hash,
             photo_url=photo_url,

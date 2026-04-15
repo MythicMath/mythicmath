@@ -31,6 +31,13 @@ async def register_user(
     payload: UserRegisterRequest,
     session: AsyncSession = Depends(get_session),
 ):
+    username = _clean_str(payload.username)
+    if not username:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Username is required",
+        )
+
     email = _clean_str(payload.email)
     if not email:
         raise HTTPException(
@@ -45,18 +52,17 @@ async def register_user(
         )
 
     email = email.lower()
-    name = payload.name.strip()
     existing = await user_service.get_user_by_email(session, email)
     if existing:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
 
-    existing_name = await user_service.get_user_by_name(session, name)
-    if existing_name:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Name already registered")
+    existing_username = await user_service.get_user_by_username(session, username)
+    if existing_username:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Username already registered")
 
     user = await user_service.create_user(
         session=session,
-        name=name,
+        username=username,
         email=email,
         password=payload.password,
     )
@@ -65,7 +71,7 @@ async def register_user(
 
     return UserRegisterResponse(
         id=user.id,
-        name=user.name,
+        username=user.username,
         email=user.email,
         token=token,
     )
@@ -86,7 +92,7 @@ async def login_user(
     if "@" in identifier:
         user = await user_service.get_user_by_email(session, identifier.lower())
     else:
-        user = await user_service.get_user_by_name(session, identifier)
+        user = await user_service.get_user_by_username(session, identifier)
 
     if not user or not user_service.verify_password(payload.password, user.password_hash):
         raise HTTPException(
@@ -97,7 +103,7 @@ async def login_user(
     token = await create_session(user_id=user.id, email=user.email)
     return UserRegisterResponse(
         id=user.id,
-        name=user.name,
+        username=user.username,
         email=user.email,
         token=token,
     )

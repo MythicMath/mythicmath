@@ -76,7 +76,7 @@ async def update_user(
 
     return UserUpdateResponse(
         id=updated.id,
-        name=updated.name,
+        username=updated.username,
         email=updated.email,
         xp=updated.xp,
         level=updated.level,
