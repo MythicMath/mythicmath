@@ -21,6 +21,12 @@ class UserRepository:
         result = await session.execute(select(User).where(User.username == username))
         return result.scalar_one_or_none()
 
+    async def get_by_google_sub(
+        self, session: AsyncSession, google_sub: str
+    ) -> Optional[User]:
+        result = await session.execute(select(User).where(User.google_sub == google_sub))
+        return result.scalar_one_or_none()
+
     async def create(
         self,
         session: AsyncSession,
@@ -28,12 +34,14 @@ class UserRepository:
         email: str,
         password_hash: str,
         photo_url: Optional[str] = None,
+        google_sub: Optional[str] = None,
     ) -> User:
         user = User(
             username=username,
             email=email,
             password_hash=password_hash,
             photo_url=photo_url,
+            google_sub=google_sub,
         )
         session.add(user)
         await session.commit()
@@ -46,11 +54,17 @@ class UserRepository:
         user: User,
         email: Optional[str] = None,
         password_hash: Optional[str] = None,
+        photo_url: Optional[str] = None,
+        google_sub: Optional[str] = None,
     ) -> User:
         if email is not None:
             user.email = email
         if password_hash is not None:
             user.password_hash = password_hash
+        if photo_url is not None:
+            user.photo_url = photo_url
+        if google_sub is not None:
+            user.google_sub = google_sub
         session.add(user)
         await session.commit()
         await session.refresh(user)

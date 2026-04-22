@@ -7,3 +7,4 @@ redis>=5.0
 python-dotenv
 aiosqlite
 python-multipart
+google-auth[requests]>=2.29
