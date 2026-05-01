@@ -22,6 +22,11 @@ class UserLoginRequest(BaseModel):
     password: str
 
 
+class UserGoogleLoginRequest(BaseModel):
+    id_token: Optional[str] = None
+    credential: Optional[str] = None
+
+
 class UserProfileResponse(BaseModel):
     userId: int
     username: str

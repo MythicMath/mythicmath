@@ -15,6 +15,7 @@ class User(Base):
     username: Mapped[str] = mapped_column("name", String(255), nullable=False, unique=True)
     email: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    google_sub: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, unique=True)
     photo_url: Mapped[Optional[str]] = mapped_column(String(2048), nullable=True)
     xp: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     level: Mapped[int] = mapped_column(Integer, default=1, nullable=False)

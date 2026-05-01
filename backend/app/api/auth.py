@@ -1,3 +1,4 @@
+import re
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
@@ -8,8 +9,14 @@ from app.schemas.user import (
     UserLoginRequest,
     UserLogoutRequest,
     UserLogoutResponse,
+    UserGoogleLoginRequest,
     UserRegisterRequest,
     UserRegisterResponse,
+)
+from app.services.google_auth import (
+    GoogleAuthConfigError,
+    GoogleAuthError,
+    verify_google_id_token,
 )
 from app.services.user_service import UserService
 from app.services.validation import is_valid_email
@@ -24,6 +31,27 @@ def _clean_str(value: Optional[str]) -> Optional[str]:
         return None
     cleaned = value.strip()
     return cleaned or None
+
+
+def _clean_username_candidate(value: str) -> str:
+    cleaned = re.sub(r"[^a-zA-Z0-9_.-]+", "_", value).strip("._-")
+    return cleaned[:60] or "google_user"
+
+
+async def _build_unique_google_username(
+    session: AsyncSession,
+    display_name: str,
+) -> str:
+    base = _clean_username_candidate(display_name)
+    candidate = base
+    suffix = 1
+
+    while await user_service.get_user_by_username(session, candidate):
+        suffix_text = f"_{suffix}"
+        candidate = f"{base[:255 - len(suffix_text)]}{suffix_text}"
+        suffix += 1
+
+    return candidate
 
 
 @router.post("/register", response_model=UserRegisterResponse, status_code=status.HTTP_201_CREATED)
@@ -98,6 +126,67 @@ async def login_user(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials",
+        )
+
+    token = await create_session(user_id=user.id, email=user.email)
+    return UserRegisterResponse(
+        id=user.id,
+        username=user.username,
+        email=user.email,
+        token=token,
+    )
+
+
+@router.post("/login/google", response_model=UserRegisterResponse)
+async def login_google_user(
+    payload: UserGoogleLoginRequest,
+    session: AsyncSession = Depends(get_session),
+):
+    google_token = _clean_str(payload.id_token) or _clean_str(payload.credential)
+    if not google_token:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Google ID token is required",
+        )
+
+    try:
+        google_identity = await verify_google_id_token(google_token)
+    except GoogleAuthConfigError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(exc),
+        ) from exc
+    except GoogleAuthError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(exc),
+        ) from exc
+
+    user = await user_service.get_user_by_google_sub(session, google_identity.subject)
+    if not user:
+        user = await user_service.get_user_by_email(session, google_identity.email)
+
+    if user:
+        if user.google_sub and user.google_sub != google_identity.subject:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Email is already linked to another Google account",
+            )
+        if not user.google_sub:
+            user = await user_service.link_google_identity(
+                session=session,
+                user=user,
+                google_sub=google_identity.subject,
+                photo_url=google_identity.picture,
+            )
+    else:
+        username = await _build_unique_google_username(session, google_identity.name)
+        user = await user_service.create_google_user(
+            session=session,
+            username=username,
+            email=google_identity.email,
+            google_sub=google_identity.subject,
+            photo_url=google_identity.picture,
         )
 
     token = await create_session(user_id=user.id, email=user.email)
